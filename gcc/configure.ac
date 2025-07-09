@@ -7502,6 +7502,16 @@ AC_ARG_ENABLE(version-specific-runtime-libs,
                 [specify that runtime libraries should be
                  installed in a compiler-specific directory])])
 
+AC_ARG_ENABLE([poison-system-directories],
+             AS_HELP_STRING([--enable-poison-system-directories],
+                            [warn for use of native system header directories]),,
+             [enable_poison_system_directories=no])
+if test "x${enable_poison_system_directories}" = "xyes"; then
+  AC_DEFINE([ENABLE_POISON_SYSTEM_DIRECTORIES],
+           [1],
+           [Define to warn for use of native system header directories])
+fi
+
 # Substitute configuration variables
 AC_SUBST(subdirs)
 AC_SUBST(srcdir)

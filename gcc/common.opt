@@ -729,6 +729,10 @@ Wreturn-local-addr
 Common Var(warn_return_local_addr) Init(1) Warning
 Warn about returning a pointer/reference to a local or temporary variable.
 
+Wpoison-system-directories
+Common Var(flag_poison_system_directories) Init(1) Warning
+Warn for -I and -L options using system directories if cross compiling
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one variable shadows another.  Same as -Wshadow=global.
