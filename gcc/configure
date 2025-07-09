@@ -1051,6 +1051,7 @@ enable_maintainer_mode
 enable_link_mutex
 enable_link_serialization
 enable_version_specific_runtime_libs
+enable_poison_system_directories
 enable_plugin
 enable_host_shared
 enable_host_pie
@@ -1828,6 +1829,8 @@ Optional Features:
   --enable-version-specific-runtime-libs
                           specify that runtime libraries should be installed
                           in a compiler-specific directory
+  --enable-poison-system-directories
+                          warn for use of native system header directories
   --enable-plugin         enable plugin support
   --enable-host-shared    build host code as shared libraries
   --enable-host-pie       build host code as PIE
@@ -34026,6 +34029,19 @@ if test "${enable_version_specific_runtime_libs+set}" = set; then :
   enableval=$enable_version_specific_runtime_libs;
 fi
 
+
+# Check whether --enable-poison-system-directories was given.
+if test "${enable_poison_system_directories+set}" = set; then :
+  enableval=$enable_poison_system_directories;
+else
+  enable_poison_system_directories=no
+fi
+
+if test "x${enable_poison_system_directories}" = "xyes"; then
+
+$as_echo "#define ENABLE_POISON_SYSTEM_DIRECTORIES 1" >>confdefs.h
+
+fi
 
 # Substitute configuration variables
 
