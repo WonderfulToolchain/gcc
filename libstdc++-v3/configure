@@ -28604,7 +28604,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 
     case "${target}" in
-      *-rtems*)
+      *-unknown*)
         case "${target}" in
           bfin* | lm32* | mips* | moxie* | or1k* | v850*)
             ;;
