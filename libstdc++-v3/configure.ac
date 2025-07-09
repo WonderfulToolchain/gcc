@@ -388,7 +388,7 @@ dnl # rather than hardcoding that information.
     AC_DEFINE(HAVE_MEMALIGN)
 
     case "${target}" in
-      *-rtems*)
+      *-unknown*)
         case "${target}" in
           bfin* | lm32* | mips* | moxie* | or1k* | v850*)
             ;;
