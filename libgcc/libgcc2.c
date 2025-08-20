@@ -148,6 +148,9 @@ __subvDI3 (DWtype a, DWtype b)
 #endif
 
 #ifdef L_mulvsi3
+#if defined(__arm__) && defined(__ARM_ARCH_ISA_ARM) && (!defined(__ARM_ARCH_ISA_THUMB) || __ARM_ARCH_ISA_THUMB < 2)
+__attribute__((target("arm")))
+#endif
 Wtype
 __mulvSI3 (Wtype a, Wtype b)
 {
@@ -159,6 +162,9 @@ __mulvSI3 (Wtype a, Wtype b)
   return w;
 }
 #ifdef COMPAT_SIMODE_TRAPPING_ARITHMETIC
+#if defined(__arm__) && defined(__ARM_ARCH_ISA_ARM) && (!defined(__ARM_ARCH_ISA_THUMB) || __ARM_ARCH_ISA_THUMB < 2)
+__attribute__((target("arm")))
+#endif
 SItype
 __mulvsi3 (SItype a, SItype b)
 {
