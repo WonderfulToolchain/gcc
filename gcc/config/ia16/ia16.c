@@ -4264,11 +4264,13 @@ norm_sym_char_p (char c)
    (Note: apparently CFUN tends to be NULL at this point, even if the variable
    is defined inside a function.)  */
 static char *
-ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
+ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique,
+                                      const char *addrspace_prefix,
+                                      const char *addrspace_name)
 {
-  const char *prefix;
+  const char *section_prefix;
+  char prefix[32];
   char *name1, *name2, *p, c;
-  size_t prefix_len;
   unsigned short hash;
   bool one_only, use_gnu_linkonce;
 
@@ -4280,7 +4282,8 @@ ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
     {
       location_t loc = DECL_SOURCE_LOCATION (decl);
       error_at (loc,
-		"cannot create %<__far%> function or static storage variable");
+		"cannot create %<%s%> function or static storage variable",
+		addrspace_name);
       ia16_error_seg_reloc (loc, NULL);
       return NULL;
     }
@@ -4289,20 +4292,17 @@ ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
   unique |= one_only;
   use_gnu_linkonce = one_only && ! HAVE_COMDAT_GROUP;
 
-#define PL(str)		(prefix = (str), \
-			 prefix_len = strlen (prefix))
-
   switch (categorize_decl_for_section (decl, reloc))
     {
     case SECCAT_TEXT:
-      PL (use_gnu_linkonce ? ".gnu.linkonce.ft." : ".fartext.");
+      section_prefix = "text";
       break;
 
     case SECCAT_DATA:
     case SECCAT_DATA_REL:
     case SECCAT_DATA_REL_LOCAL:
     case SECCAT_BSS:
-      PL (use_gnu_linkonce ? ".gnu.linkonce.fd." : ".fardata.");
+      section_prefix = "data";
       break;
 
     case SECCAT_DATA_REL_RO:
@@ -4311,14 +4311,18 @@ ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
     case SECCAT_RODATA_MERGE_STR:
     case SECCAT_RODATA_MERGE_STR_INIT:
     case SECCAT_RODATA_MERGE_CONST:
-      PL (use_gnu_linkonce ? ".gnu.linkonce.fr." : ".farrodata.");
+      section_prefix = "rodata";
       break;
 
     default:
       return NULL;
     }
 
-#undef PL
+  if (use_gnu_linkonce)
+    sprintf(prefix, ".gnu.linkonce.%c%c.", addrspace_prefix[0],
+      section_prefix[0]);
+  else
+    sprintf(prefix, ".%s%s.", addrspace_prefix, section_prefix);
 
   /* Extract and copy the base name of the main input file, or the name of
      the declared variable or function, and convert non-symbol characters to
@@ -4328,7 +4332,7 @@ ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
   else
     name1 = ACONCAT ((prefix, "s.",
 		      IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)), NULL));
-  p = name1 + prefix_len;
+  p = name1 + strlen(prefix);
   while ((c = *p) != 0)
     {
       if (! norm_sym_char_p (c))
@@ -4345,12 +4349,24 @@ ia16_fabricate_section_name_for_decl (tree decl, int reloc, bool unique)
 
   if (asprintf (&name2, "%s.%05ho$", name1, hash) <= 0)
     {
-      error ("not enough memory for %<__far%> function or variable "
-	     "section name");
+      error ("not enough memory for %<%s%> function or variable "
+	     "section name", addrspace_name);
       return NULL;
     }
 
   return name2;
+}
+
+static char *
+ia16_fabricate_far_section_name_for_decl (tree decl, int reloc, bool unique)
+{
+  return ia16_fabricate_section_name_for_decl(decl, reloc, unique, "far", "__far");
+}
+
+static char *
+ia16_fabricate_stack_section_name_for_decl (tree decl, int reloc, bool unique)
+{
+  return ia16_fabricate_section_name_for_decl(decl, reloc, unique, "s", "__seg_ss");
 }
 
 static section *
@@ -4365,8 +4381,8 @@ ia16_asm_select_section (tree expr, int reloc, unsigned HOST_WIDE_INT align)
       gcc_unreachable ();
 
     case ADDR_SPACE_FAR:
-      sname = ia16_fabricate_section_name_for_decl (expr, reloc,
-						    flag_data_sections);
+      sname = ia16_fabricate_far_section_name_for_decl (expr, reloc,
+						        flag_data_sections);
       if (sname)
 	{
 	  section *sect = get_named_section (expr, sname, reloc);
@@ -4394,9 +4410,23 @@ ia16_asm_select_section (tree expr, int reloc, unsigned HOST_WIDE_INT align)
 	 they refer to %ds and not %ss.  */
       if ((! CONSTANT_CLASS_P (expr) && ! EXPR_P (expr))
 	  || ! TREE_READONLY (expr))
+	{
+	  if (TARGET_SEG_SS_DECLARATIONS && ! TREE_READONLY (expr))
+	    {
+	      sname = ia16_fabricate_stack_section_name_for_decl (expr, reloc,
+						        	  flag_data_sections);
+	      if (sname)
+		{
+		  section *sect = get_named_section (expr, sname, reloc);
+		  free (sname);
+		  return sect;
+		}
+	    }
+
 	error_at (DECL_P (expr) ? DECL_SOURCE_LOCATION (expr)
 				: UNKNOWN_LOCATION, "cannot allocate "
 		  "static storage object in %<__seg_ss%> address space");
+      }
       return default_elf_select_section (expr, reloc, align);
     }
 }
@@ -4416,7 +4446,7 @@ ia16_asm_unique_section (tree decl, int reloc)
       gcc_unreachable ();
 
     case ADDR_SPACE_FAR:
-      sname = ia16_fabricate_section_name_for_decl (decl, reloc, true);
+      sname = ia16_fabricate_far_section_name_for_decl (decl, reloc, true);
       if (sname)
 	{
 	  set_decl_section_name (decl, sname);
@@ -4436,6 +4466,17 @@ ia16_asm_unique_section (tree decl, int reloc)
       break;
 
     case ADDR_SPACE_SEG_SS:
+	if (TARGET_SEG_SS_DECLARATIONS && ! TREE_READONLY (decl))
+          {
+            sname = ia16_fabricate_stack_section_name_for_decl (decl, reloc, true);
+            if (sname)
+	      {
+		set_decl_section_name (decl, sname);
+		free (sname);
+		return;
+	      }
+	  }
+
       error_at (DECL_SOURCE_LOCATION (decl), "cannot allocate static storage "
 		"object in %<__seg_ss%> address space");
       default_unique_section (decl, reloc);
@@ -4621,8 +4662,8 @@ ia16_asm_function_section (tree decl, enum node_frequency freq, bool startup,
 	  || ! ia16_far_section_function_type_p (TREE_TYPE (decl))))
     return default_function_section (decl, freq, startup, stop);
 
-  sname = ia16_fabricate_section_name_for_decl (decl, reloc,
-						flag_function_sections);
+  sname = ia16_fabricate_far_section_name_for_decl (decl, reloc,
+						    flag_function_sections);
   if (sname)
     {
       section *sect = get_named_section (decl, sname, reloc);

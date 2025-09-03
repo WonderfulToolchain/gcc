@@ -137,6 +137,14 @@ mno-segment-relocation-stuff
 Target RejectNegative InverseMask(SEG_RELOC_STUFF)
 Disable language features which use segment relocations.
 
+mstack-declarations
+Target RejectNegative Mask(SEG_SS_DECLARATIONS)
+Enable placing variable declarations in the stack segment address space.
+
+mno-stack-declarations
+Target RejectNegative InverseMask(SEG_SS_DECLARATIONS)
+Disable placing variable declarations in the stack segment address space.
+
 mcdecl
 Target RejectNegative Report Var(target_call_parm_cvt,CALL_PARM_CVT_CDECL) Init(CALL_PARM_CVT_CDECL) Undocumented
 
