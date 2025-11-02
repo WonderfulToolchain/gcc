@@ -73,8 +73,17 @@ MULTILIB_OPTIONS     += mthumb
 MULTILIB_DIRNAMES    += thumb
 
 # Provide a multilib variant for each supported CPU.
-MULTILIB_OPTIONS     += mcpu=arm7tdmi/mcpu=arm946e-s+nofp/mcpu=mpcore
-MULTILIB_DIRNAMES    += arm7tdmi arm946e-s mpcore
+MULTILIB_OPTIONS     += mcpu=arm7tdmi/mcpu=arm946e-s+nofp/mcpu=mpcore/march=armv6s-m
+MULTILIB_DIRNAMES    += arm7tdmi arm946e-s mpcore armv6-m
+
+# ARM/Thumb architectures
+MULTILIB_REQUIRED    += . mthumb
+MULTILIB_REQUIRED    += mcpu=arm7tdmi mthumb/mcpu=arm7tdmi
+MULTILIB_REQUIRED    += mcpu=arm946e-s+nofp mthumb/mcpu=arm946e-s+nofp
+MULTILIB_REQUIRED    += mcpu=mpcore mthumb/mcpu=mpcore
+
+# Thumb-only architectures
+MULTILIB_REQUIRED    += mthumb/march=armv6s-m
 
 # PART 3 - Match rules
 
